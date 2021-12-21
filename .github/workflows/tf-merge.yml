@@ -1,20 +1,19 @@
-name: terraform plan
-
+name: terraform apply
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches:
       - '**'
-      - '!main'
     paths:
       - '**.tf'
-      - '.tfnotify/*'
 
 env:
   TF_VAR_project_id: ${{ secrets.GCP_PROJECT_ID }}
 
 jobs:
-  tf-commit:
+  tf-merge:
     runs-on: ubuntu-20.04
+    if: github.event.pull_request.merged == true
     defaults:
       run:
         shell: bash
@@ -50,27 +49,17 @@ jobs:
         id: init
         run: terraform init
 
-      - name: Tflint
-        uses: reviewdog/action-tflint@master
-        with:
-          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-          reporter: github-pr-review
-          fail_on_error: "false"
-          filter_mode: "nofilter"
-
       - name: Terraform Validate
         id: validate
         run: terraform validate -no-color
         continue-on-error: true
 
-      - name: Terraform Plan And Notify By Slack
+      - name: Terraform Apply And Notify By Slack
         id: plan
         run: |
-          terraform plan -no-color >> result.temp
-          cat result.temp | tfnotify --config .tfnotify/github.yml plan --message "$(date)"
+          terraform apply -no-color -auto-approve | tfnotify --config .tfnotify/slack.yml apply --message "$(date)"
         env:
           SLACK_TOKEN: ${{ secrets.SLACK_TOKEN }}
           SLACK_CHANNEL_ID: ${{ secrets.SLACK_CHANNEL_ID }}
           SLACK_BOT_NAME: tf-notify-bot
           GITHUB_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-        continue-on-error: true
