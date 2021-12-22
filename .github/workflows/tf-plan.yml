@@ -37,7 +37,6 @@ jobs:
       - name: Terraform Format
         id: fmt
         run: terraform fmt --check
-        continue-on-error: true
 
       - name: Terraform Init
         id: init
@@ -53,8 +52,7 @@ jobs:
 
       - name: Terraform Validate
         id: validate
-        run: terraform validate -no-color
-        continue-on-error: true
+        run: terraform validate
 
       - name: Terraform Plan And Notify By Slack
         id: plan
